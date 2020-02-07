@@ -51,16 +51,20 @@ class CheckButton extends React.Component {
     //https://github.com/sstur/react-rte/blob/master/src/ui/Button.js focusOnClick
     constructor(props) {
         super(props)
+        this.state = { value: this.props.value }
 
     }
     _onChange(e) {
-        this.props._onChange(this.props.caption, e.target.checked)
+        this.setState((prev) => { return { value: !prev.value } }, (v) => { this.props._onChange(this.props.caption, v) })
     }
     render() {
         return (
-            <label className={`btn btn-toolbox ${this.props.disabled ? 'disabled' : ''} ${this.props.value ? 'active' : ''}`} onMouseDown={this.props.focusOnClick ? (e) => { e.preventDefault() } : () => { }}>
-                <input type="checkbox" onClick={(e) => this._onChange(e)} value={this.props.value} onMouseDown={this.props.focusOnClick ? (e) => { e.preventDefault() } : () => { }} /> {lang.values[this.props.caption]}
-            </label>)
+            <button
+                className={`btn btn-toolbox ${this.props.disabled ? 'disabled' : ''} ${this.state.value ? 'active' : ''}`}
+                onClick={(e) => this._onChange(e)}
+                onMouseDown={this.props.focusOnClick ? (e) => { e.preventDefault() } : () => { }}>
+                {lang.values[this.props.caption]}
+            </button>)
     }
 }
 class ColorChooserPanel extends React.Component {
@@ -71,7 +75,13 @@ class ColorChooserPanel extends React.Component {
     render() {
         let colorButton = []
         for (const i in colorEnum) {
-            colorButton.push(<div key={i} onClick={(e) => this.onChoosed(e, i)} className="btn btn-sm color-block" style={{ backgroundColor: colorEnum[i].cssForeColor }} data-toggle="tooltip" data-title={`${lang.values[i]}`}>
+            colorButton.push(<div key={i}
+                onClick={(e) => this.onChoosed(e, i)}
+                className="btn btn-sm color-block"
+                style={{ backgroundColor: colorEnum[i].cssForeColor }}
+                data-toggle="tooltip"
+                data-title={`${lang.values[i]}`}
+                onMouseDown={this.props.focusOnClick ? (e) => { e.preventDefault() } : () => { }}>
                 <span style={{ fontSize: "0.05em", color: colorEnum[i].cssForeColor }}>empty</span>
             </div>)
         }
@@ -87,7 +97,7 @@ class ColorChooserPanel extends React.Component {
 class ColorChooser extends React.Component {
     constructor(props) {
         super(props)
-        this.state = {showPanel: false, posPanel: { top: 0, left: 0 }} 
+        this.state = { showPanel: false, posPanel: { top: 0, left: 0 } }
     }
     /**
      *
@@ -119,21 +129,24 @@ class ColorChooser extends React.Component {
     }
 
     render() {
-
+console.log(this.props.value)
         return (
-            <div className={`btn border ${this.state.showPanel ? 'btn-primary active' : 'border-primary'}`}>
+            <div className={`btn border ${this.state.showPanel ? 'btn-primary active' : 'border-primary'}`} 
+            onMouseDown={this.props.focusOnClick ? (e) => { e.preventDefault() } : () => { }}>
                 <span>字体颜色：</span>
-                <div className="btn color-block" onClick={(e) => this._onClick(e)} style={{ backgroundColor: this.props.value.cssForeColor, color: this.props.value.cssForeColor }}>
+                <div className="btn color-block" onClick={(e) => this._onClick(e)} 
+                style={
+                    { backgroundColor: this.props.value.cssForeColor, 
+                    color: this.props.value.cssForeColor }}>
                     <span style={{ padding: 0, fontSize: "0.05em" }}></span>
                 </div>
-                {this.state.showPanel ? (<ColorChooserPanel pos={this.state.posPanel} onSelectChange={(c) => this.onSelectChange(c)} />) : ''}</div>
+                {this.state.showPanel ? (<ColorChooserPanel pos={this.state.posPanel} onSelectChange={(c) => this.onSelectChange(c)} focusOnClick={this.props.focusOnClick} />) : ''}</div>
         )
     }
 }
 class ToolsBar extends React.Component {
     constructor(props) {
         super(props)
-        this.state = this.props.state
     }
     _onCheckbuttonChange(key, newValue) {
         this.props._onChange(key, newValue)
@@ -142,18 +155,19 @@ class ToolsBar extends React.Component {
         this.props._onChange('Color', color)
     }
     render() {
+        console.log(this.props.state.Color)
         let checkBtns = []
-        for (const i in this.state.Decoration) {
+        for (const i in this.props.state.Decoration) {
             checkBtns.push(
-                <CheckButton key={i} caption={i} _onChange={(a, b) => this._onCheckbuttonChange(a, b)} focusOnClick={true} value={this.state.Decoration[i]}></CheckButton>)
+                <CheckButton key={i} caption={i} _onChange={(a, b) => this._onCheckbuttonChange(a, b)} focusOnClick={true} value={this.props.state.Decoration[i]}></CheckButton>)
         }
         return (
-            <div className="row prevent-focus">
+            <div className="row">
                 <div className='col'>
-                    <div className="btn-group " >
+                    <div className="btn-group" >
                         <div className="btn-group btn-group-toggle"
-                            data-toggle="buttons">{checkBtns}</div>
-                        <ColorChooser value={this.state.Color} onColorChange={(c) => this._onColorChange(c)} /></div>
+                            >{checkBtns}</div>
+                        <ColorChooser value={this.props.state.Color} onColorChange={(c) => this._onColorChange(c)} focusOnClick={true} /></div>
 
                 </div>
             </div>)
@@ -178,7 +192,7 @@ class PreviewEditor extends React.Component {
             }
 
         }
-
+        
     }
     onChange(editorState) {
         this.setState({ editorState });
@@ -200,23 +214,27 @@ class PreviewEditor extends React.Component {
      */
     _onToolsBarChange(key, newValue) {
         if (key === 'Color') {
-            this.setState((prev)=>{
-                let a=prev.toolsBarState
-                a.Color=newValue
-                return {toolsBarState:a}
+            this.setState((prev) => {
+                let a = prev.toolsBarState
+                a.Color = newValue
+                return { toolsBarState: a }
             }
-               )
+            )
 
             this.toggleInlineStyle(newValue.name)
         } else {
-            this.setState((prev)=>{
-                let newDecoration = prev.toolsBarState.Decoration;
-            newDecoration[key] = newValue
+            this.setState((prev) => {
+                let a = prev.toolsBarState
+                a.Decoration[key] = newValue
+                return { toolsBarState: a }
+                /* let newDecoration = prev.toolsBarState.Decoration;
+                newDecoration[key] = newValue
                 return {
-                toolsBarState: {
-                    Decoration: newDecoration
-                }
-            }})
+                    toolsBarState: {
+                        Decoration: newDecoration
+                    }
+                } */
+            })
             this.toggleInlineStyle(key)
         }
 
@@ -224,11 +242,30 @@ class PreviewEditor extends React.Component {
     }
 
     render() {
+        /* const inlineType = this.state.editorState.getCurrentInlineStyle()
+
+        let decor=this.state.toolsBarState.Decoration,color=this.state.toolsBarState.Decoration
+        for(const i in decor){
+            if(inlineType.has(i)){
+                decor[i]=true
+            }else{
+                decor[i]=false
+            }
+        }
+        for(const c in colorEnum){
+            if(inlineType.has(c)){
+                color[c]=true
+            }else{
+                color[c]=false
+            }
+        }
+        console.log(inlineType) */
         return (
             <div className="container" style={{ minWidth: "515px" }}>
 
 
-                <ToolsBar state={this.state.toolsBarState} _onChange={(k, v) => this._onToolsBarChange(k, v)}></ToolsBar>
+                <ToolsBar state={this.state.toolsBarState} 
+                _onChange={(k, v) => this._onToolsBarChange(k, v)}></ToolsBar>
 
 
                 <div className="row">

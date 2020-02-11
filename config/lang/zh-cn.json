@@ -1,0 +1,31 @@
+{
+    "langName":"简体中文",
+    "author":"",
+    "authorContact":"",
+    "values":{
+        "bold":"粗体",
+        "italic":"斜体",
+        "underLine":"下划线",
+        "strikethrough":"删除线",
+        "obfuscated":"随机字符",
+        "black": "黑色",
+    "dark_blue": "深蓝",
+    "dark_green": "深绿",
+    "dark_aqua": "深阿夸色",
+    "dark_red": "红色",
+    "dark_purple": "紫色",
+    "gold": "金色",
+    "gray": "灰色",
+    "dark_gray": "深灰",
+    "blue": "蓝色",
+    "green": "绿色",
+    "aqua": "阿夸色",
+    "red":"红色",
+    "light_purple": "浅紫",
+    "yellow": "黄色",
+    "white": "白色",
+    "empty": "默认",
+        "LANG_ja-*":"日语",
+        "LANG_en-*":"英语"
+    }
+}

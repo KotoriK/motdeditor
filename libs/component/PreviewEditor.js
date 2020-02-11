@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom'
 import { Editor, EditorState, RichUtils } from 'draft-js'
 import { lang } from '../../config/config'
 //import {*} as 'FormatCode' from './formatCode'
-import { RichString, RichChar, Formats, Color, colorEnum,convertSpecialChar } from './formatCode'
+import { RichString, RichChar, Formats, Color, colorEnum, convertSpecialChar } from './formatCode'
 const styleMap = (function () {
     let a = {
         'strikethrough': {
@@ -18,14 +18,17 @@ const styleMap = (function () {
         'underLine': {
             textDecoration: 'underline'
         },
+        'obfuscated': {
+            backgroundColor: '#ffb3b3b6',
+        }
     }
     for (const c in colorEnum) {
-        a[`c_${c}`] = { color: colorEnum[c].cssForeColor }
+        a[`c_${c}`] = { color: colorEnum[c].cssForeColor, textShadow: `1px 0.2px ${colorEnum[c].cssBackColor}` }
     }
 
     return a
-})()
-class ObfuscatedSpan extends React.Component {
+})(), colorMatch = /^c_/
+/* class ObfuscatedSpan extends React.Component {
     render() {
         <span {...this.props} style={{ color: 'rgba(0,0,0,0' }}>
             {this.props.children}
@@ -40,7 +43,7 @@ class OperationButton extends React.Component {
     render() {
 
     }
-}
+} */
 class CheckButton extends React.Component {
 
     /**
@@ -55,7 +58,13 @@ class CheckButton extends React.Component {
 
     }
     _onChange(e) {
-        this.setState((prev) => { return { value: !this.props.value } }, (v) => { this.props._onChange(this.props.caption, v) })
+        this.setState(
+            (prev) => {
+                return { value: !this.props.value }
+            },
+            () => {
+                this.props._onChange(this.props.caption, this.state.value)
+            })
     }
     render() {
         return (
@@ -130,13 +139,15 @@ class ColorChooser extends React.Component {
 
     render() {
         return (
-            <div className={`btn border ${this.state.showPanel ? 'btn-primary active' : 'border-primary'}`} 
-            onMouseDown={this.props.focusOnClick ? (e) => { e.preventDefault() } : () => { }}>
+            <div className={`btn border ${this.state.showPanel ? 'btn-primary active' : 'border-primary'}`}
+                onMouseDown={this.props.focusOnClick ? (e) => { e.preventDefault() } : () => { }}>
                 <span>字体颜色：</span>
-                <div className="btn color-block" onClick={(e) => this._onClick(e)} 
-                style={
-                    { backgroundColor: this.props.value.cssForeColor, 
-                    color: this.props.value.cssForeColor }}>
+                <div className="btn color-block" onClick={(e) => this._onClick(e)}
+                    style={
+                        {
+                            backgroundColor: this.props.value.cssForeColor,
+                            color: this.props.value.cssForeColor
+                        }}>
                     <span style={{ padding: 0, fontSize: "0.05em" }}></span>
                 </div>
                 {this.state.showPanel ? (<ColorChooserPanel pos={this.state.posPanel} onSelectChange={(c) => this.onSelectChange(c)} focusOnClick={this.props.focusOnClick} />) : ''}</div>
@@ -154,7 +165,7 @@ class ToolsBar extends React.Component {
         this.props._onChange('Color', color)
     }
     render() {
-        let color=this.props.state.Color?this.props.state.Color:colorEnum.empty
+        let color = this.props.state.Color ? this.props.state.Color : colorEnum.empty
         let checkBtns = []
         for (const i in this.props.state.Decoration) {
             checkBtns.push(
@@ -165,7 +176,7 @@ class ToolsBar extends React.Component {
                 <div className='col'>
                     <div className="btn-group" >
                         <div className="btn-group btn-group-toggle"
-                            >{checkBtns}</div>
+                        >{checkBtns}</div>
                         <ColorChooser value={color} onColorChange={(c) => this._onColorChange(c)} focusOnClick={true} /></div>
 
                 </div>
@@ -191,36 +202,36 @@ class PreviewEditor extends React.Component {
             }
 
         }
-        this.props.funcChangeContentState((s)=>this.changeEditorState(s))
+        this.props.funcChangeContentState((s) => this.changeEditorState(s))
     }
     onChange(editorState) {
         const inlineType = editorState.getCurrentInlineStyle()
 
-        let decor=this.state.toolsBarState.Decoration,lastColor=undefined,colorToToggle=[]
-        for(const i in decor){
-            if(inlineType.has(i)){
-                decor[i]=true
-            }else{
-                decor[i]=false
+        let decor = this.state.toolsBarState.Decoration, lastColor = undefined
+        for (const i in decor) {
+            if (inlineType.has(i)) {
+                decor[i] = true
+            } else {
+                decor[i] = false
             }
         }
-        for(const c in colorEnum){
-            if(inlineType.has(`c_${colorEnum[c].name}`)){
-                if(lastColor){
-                    colorToToggle.push(lastColor)
+        for (const c in colorEnum) {
+            if (inlineType.has(`c_${colorEnum[c].name}`)) {
+                if (lastColor) {
+                    editorState = RichUtils.toggleInlineStyle(editorState, `c_${lastColor.name}`)
                 }
-                lastColor=colorEnum[c]
+                lastColor = colorEnum[c]
             }
         }
 
-        for(const c of colorToToggle){
-            editorState=RichUtils.toggleInlineStyle(editorState,`c_${c.name}`)
-        }
-        this.setState({ editorState,toolsBarState:{
-            Decoration:decor,
-            Color:lastColor
-        } });
-        if(typeof this.props.onStateChange==="function"){
+
+        this.setState({
+            editorState, toolsBarState: {
+                Decoration: decor,
+                Color: lastColor
+            }
+        });
+        if (typeof this.props.onStateChange === "function") {
             this.props.onStateChange(editorState.getCurrentContent())
         }
     }
@@ -232,9 +243,19 @@ class PreviewEditor extends React.Component {
             )
         );
     }
-    changeEditorState(editorState){
-        this.setState({editorState})
-        if(typeof this.props.onStateChange==="function"){
+    toggleInlineStyleGroup(inlineStyles) {
+        this.setState((prev) => {
+            let editorState = prev
+            for (const c of inlineStyles) {
+                editorState = RichUtils.toggleInlineStyle(editorState, `c_${c.name}`)
+            }
+            return editorState
+        })
+
+    }
+    changeEditorState(editorState) {
+        this.setState({ editorState })
+        if (typeof this.props.onStateChange === "function") {
             this.props.onStateChange(editorState.getCurrentContent())
         }
     }
@@ -248,21 +269,36 @@ class PreviewEditor extends React.Component {
     _onToolsBarChange(key, newValue) {
         if (key === 'Color') {
             const inlineStyle = this.state.editorState.getCurrentInlineStyle()
-            if(!inlineStyle.has(`c_${newValue.name}`)){
+            if (!inlineStyle.has(`c_${newValue.name}`)) {
                 this.setState((prev) => {
-                let a = prev.toolsBarState
-                a.Color = newValue
-                return { toolsBarState: a }
+                    let a = prev.toolsBarState, editorState = prev.editorState
+                    a.Color = newValue
+                    for (const i of inlineStyle.toArray()) {
+                        if (i.match(colorMatch)) {
+                            editorState = RichUtils.toggleInlineStyle(editorState, i)
+                        }
+                    }
+                    return {
+                        editorState: RichUtils.toggleInlineStyle(
+                            editorState,
+                            `c_${newValue.name}`
+                        ), toolsBarState: a
+                    }
+                }
+                )
             }
-            )
-            this.toggleInlineStyle(`c_${newValue.name}`)
-            }
-            
+
         } else {
             this.setState((prev) => {
                 let a = prev.toolsBarState
                 a.Decoration[key] = newValue
-                return { toolsBarState: a }
+                return {
+                    editorState: RichUtils.toggleInlineStyle(
+                        prev.editorState,
+                        key
+                    ), toolsBarState: a
+                }
+
                 /* let newDecoration = prev.toolsBarState.Decoration;
                 newDecoration[key] = newValue
                 return {
@@ -270,19 +306,21 @@ class PreviewEditor extends React.Component {
                         Decoration: newDecoration
                     }
                 } */
-            })
-            this.toggleInlineStyle(key)
+            },()=>{ if (typeof this.props.onStateChange === "function") {
+                this.props.onStateChange(this.state.editorState.getCurrentContent())
+            }})
+           
         }
 
 
     }
 
     render() {
-        
+
         return (
-            <div className="container" style={{ minWidth: "515px" }}>
-                <ToolsBar state={this.state.toolsBarState} 
-                _onChange={(k, v) => this._onToolsBarChange(k, v)}></ToolsBar>
+            <div>
+                <ToolsBar state={this.state.toolsBarState}
+                    _onChange={(k, v) => this._onToolsBarChange(k, v)}></ToolsBar>
                 <div className="row">
                     <div className='col'>
                         <div className="border border-primary">
@@ -296,67 +334,73 @@ class PreviewEditor extends React.Component {
     }
 
 }
-class FormatCodeRawView extends React.Component{
-    constructor(props){
+class FormatCodeRawView extends React.Component {
+    constructor(props) {
         super(props)
-        
-    }
-    render(){
-        let raw="";
-        if(this.props.ContentState){
-             for(const block of this.props.ContentState.getBlocksAsArray()){
-            let text=block.text,metaArray=block.getCharacterList().toArray(),rcArray=[new RichChar('')]
-            if(text.length===metaArray.length){
-                for(const c in text){
-                    let kvPairs=[],color=colorEnum.empty
-                    for(const f of metaArray[c].getStyle().toArray()){
-                        if(f.match(/^c_/)){
-                           kvPairs.push({name:'color',value:colorEnum[f.slice(2,f.length)]}) 
-                        }else{
-                            kvPairs.push({name:f,value:true})
-                        }
-                        
-                    }
-                    rcArray.push(new RichChar(text[c],new Formats(kvPairs)))
-                }
-                raw=new RichString(rcArray).convertToFormatCode()
-                if(this.props.convertToUnicode){
-                     raw=convertSpecialChar(raw)
 
+    }
+    render() {
+        let raw = "";
+        if (this.props.ContentState) {
+            for (const block of this.props.ContentState.getBlocksAsArray()) {
+                let text = block.text, metaArray = block.getCharacterList().toArray(), rcArray = [new RichChar('')]
+                if (text.length === metaArray.length) {
+                    for (const c in text) {
+                        let kvPairs = []
+                        for (const f of metaArray[c].getStyle().toArray()) {
+                            if (f.match(colorMatch)) {
+                                kvPairs.push({ name: 'color', value: colorEnum[f.slice(2, f.length)] })
+                            } else {
+                                kvPairs.push({ name: f, value: true })
+                            }
+
+                        }
+                        rcArray.push(new RichChar(text[c], new Formats(kvPairs)))
+                    }
+                    raw = new RichString(rcArray).convertToFormatCode()
+                    if (this.props.convertToUnicode) {
+                        raw = convertSpecialChar(raw)
+
+                    }
+
+                } else {
+                    throw new Error('length not paired')
                 }
-               
-            }else{
-                throw new Error('length not paired')
             }
         }
+
+        return (<div className="input-group mb-3">
+            <div className="input-group-prepend">
+                <span className="input-group-text">{this.props.prepend}</span>
+            </div>
+            <p className="form-control border border-primary">{raw}</p>
+
+        </div>)
+    }
+}
+class ShareContentState extends React.Component {
+    constructor(props) {
+        super(props)
+        this.state = {
+            funcChangeContentState: undefined,
+            ContentState: undefined
         }
-       
-        return(<div>
-    <p>{raw}</p>
-        </div>)
     }
-}
-class ShareContentState extends React.Component{
-constructor(props){
-    super(props)
-    this.state={
-        funcChangeContentState:undefined,
-        ContentState:undefined
+    onContentStateUpdate(newContentState) {
+        this.setState({ ContentState: newContentState })
     }
-}
-onContentStateUpdate(newContentState){
-this.setState({ContentState:newContentState})
-}
-getFuncChangeContentState(func){
-    this.setState({funcChangeContentState:func})
-}
-    render(){
-        return( <div>
-            <PreviewEditor onStateChange={(c)=>this.onContentStateUpdate(c)} funcChangeContentState={(func)=>this.getFuncChangeContentState(func)}></PreviewEditor>
-            <FormatCodeRawView ContentState={this.state.ContentState} funcChangeContentState={this.state.funcChangeContentState} convertToUnicode={false}></FormatCodeRawView>
-            <FormatCodeRawView ContentState={this.state.ContentState} funcChangeContentState={this.state.funcChangeContentState} convertToUnicode={true}></FormatCodeRawView>
+    getFuncChangeContentState(func) {
+        this.setState({ funcChangeContentState: func })
+    }
+    render() {
+        return (<div className="container" style={{ minWidth: "515px" }}>
+            <PreviewEditor onStateChange={(c) => this.onContentStateUpdate(c)} funcChangeContentState={(func) => this.getFuncChangeContentState(func)}></PreviewEditor>
+            <div>
+                <FormatCodeRawView ContentState={this.state.ContentState} funcChangeContentState={this.state.funcChangeContentState} convertToUnicode={false} prepend="格式代码"></FormatCodeRawView>
+                <FormatCodeRawView ContentState={this.state.ContentState} funcChangeContentState={this.state.funcChangeContentState} convertToUnicode={true} prepend="格式代码(特殊字符已转换)">></FormatCodeRawView>
+            </div>
         </div>)
-       
+
     }
 }
 

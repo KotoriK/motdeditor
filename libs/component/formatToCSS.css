@@ -1,0 +1,22 @@
+/* formatToCSS.css */
+.bold{
+    font-weight: bold;
+}
+.italic{
+    font-style: italic;
+}
+.underLine{
+    text-decoration: underline;
+}
+.strikethrough{
+    text-decoration: line-through;
+}
+.twoLine{
+    text-decoration: line-through underline;
+}
+/* .obfuscated{
+
+} */
+.color-block{
+    padding-bottom:100%;
+}

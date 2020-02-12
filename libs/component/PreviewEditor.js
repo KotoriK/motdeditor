@@ -1,5 +1,4 @@
 import React from 'react'
-import ReactDOM from 'react-dom'
 import { Editor, EditorState, RichUtils } from 'draft-js'
 import { lang } from '../../config/config'
 //import {*} as 'FormatCode' from './formatCode'
@@ -340,11 +339,12 @@ class FormatCodeRawView extends React.Component {
 
     }
     render() {
-        let raw = "";
+        let raw = "",rcArray=[new RichChar('')];
         if (this.props.ContentState) {
             for (const block of this.props.ContentState.getBlocksAsArray()) {
-                let text = block.text, metaArray = block.getCharacterList().toArray(), rcArray = [new RichChar('')]
+                let text = block.text, metaArray = block.getCharacterList().toArray()
                 if (text.length === metaArray.length) {
+                    let lastFormat;
                     for (const c in text) {
                         let kvPairs = []
                         for (const f of metaArray[c].getStyle().toArray()) {
@@ -355,25 +355,27 @@ class FormatCodeRawView extends React.Component {
                             }
 
                         }
-                        rcArray.push(new RichChar(text[c], new Formats(kvPairs)))
+                        lastFormat=new Formats(kvPairs)
+                        rcArray.push(new RichChar(text[c],lastFormat))
                     }
-                    raw = new RichString(rcArray).convertToFormatCode()
+                    rcArray.push(new RichChar('\n',lastFormat))
+                } else {
+                    throw new Error('length not paired')
+                }
+            } 
+            raw = new RichString(rcArray).convertToFormatCode()
                     if (this.props.convertToUnicode) {
                         raw = convertSpecialChar(raw)
 
                     }
-
-                } else {
-                    throw new Error('length not paired')
-                }
-            }
+            raw=raw.slice(0,raw.length-2)
         }
 
         return (<div className="input-group mb-3">
             <div className="input-group-prepend">
                 <span className="input-group-text">{this.props.prepend}</span>
             </div>
-            <p className="form-control border border-primary">{raw}</p>
+            <pre className=" border border-primary" style={{wordBreak:'break-all'}}>{raw}</pre>
 
         </div>)
     }

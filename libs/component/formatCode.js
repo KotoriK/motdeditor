@@ -33,7 +33,8 @@ function convertSpecialChar(string) {
     for (const i of string) {
         if (/[\u0020-\u007F]/i.test(i)) {
             array.push(i);
-        } else {
+        } else
+         {
             let str = i.charCodeAt(0)
             isNaN(str)?str='0000':str=str.toString(16)
             while (str.length < 4) {
@@ -358,11 +359,12 @@ class RichString {
                     }
                 }
             }
+            let char=(i.char==='\u0000'?'':(i.char==='\n'?'\\n':i.char))
             if (needReset) {
-                fc += '§r' + nextFormat.convertToFormatCode() + (i.char==='\u0000'?'':i.char);
+                fc += '§r' + nextFormat.convertToFormatCode() + char;
                 needReset = false;
             } else {
-                fc += new Formats(needUpdate).convertToFormatCode() + (i.char==='\u0000'?'':i.char);
+                fc += new Formats(needUpdate).convertToFormatCode() + char;
             }
             nowFormat = nextFormat;
         }
